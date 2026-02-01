@@ -22,13 +22,15 @@ Security researchers found [1,800+ exposed OpenClaw instances](https://www.shoda
 
 ### The Risk is Real
 
-Security researchers have been documenting these issues:
+Security researchers have been documenting these issues on X:
 
-> **[@dvulnresearch](https://x.com/dvulnresearch)** - Original security researcher who ran Shodan scans finding 1,800+ exposed instances with open gateway control planes.
+> **[@DanielMiessler](https://x.com/DanielMiessler/status/2015865548714975475)** - Security expert discussing the broader implications of exposed AI agent infrastructure.
 
-> **[@UK_Daniel_Card](https://x.com/UK_Daniel_Card)** & **[@lucatac0](https://x.com/lucatac0)** - Shared Shodan scans showing exposed instances and documented the attack surface.
+> **[@UK_Daniel_Card](https://x.com/UK_Daniel_Card/status/2015685932184219998)** - Shared Shodan scans showing exposed instances and documented the attack surface of publicly accessible OpenClaw gateways.
 
-> **[@theonejvo](https://x.com/theonejvo)** - Posted about leaked API keys and the malicious "What Would Elon Do?" skill that exfiltrated data to external servers.
+> **[@somi_ai](https://x.com/somi_ai/status/2016018694636515666)** - Highlighted the security risks of OpenClaw running wild in business environments with direct access to email, files, and system tools.
+
+> **[@lucatac0](https://x.com/lucatac0/status/2015473205863948714)** - Documented over 1,000 exposed instances via Shodan, showing API keys (Anthropic, OpenAI, Telegram) and chat histories accessible without authentication.
 
 > **[Cisco AI Defense Research](https://www.cisco.com)** - Found that cryptocurrency private keys could be extracted in under 5 minutes via crafted email prompt injection. Also discovered 26% of 31,000 skills analyzed had vulnerabilities.
 
