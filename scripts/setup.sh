@@ -201,6 +201,16 @@ EOF
     sudo systemctl restart fail2ban
     log "fail2ban configured and running"
     
+    # Disable mDNS/Avahi to prevent information leakage
+    log "Disabling mDNS/Avahi service..."
+    if systemctl is-active avahi-daemon &> /dev/null; then
+        sudo systemctl stop avahi-daemon
+        sudo systemctl disable avahi-daemon
+        log "Avahi daemon disabled"
+    else
+        log "Avahi daemon already disabled or not installed"
+    fi
+    
     save_state "PHASE2_COMPLETE"
     log "Phase 2 complete: Server hardened"
 }
@@ -454,9 +464,17 @@ phase5_security() {
         find "$HOME/.openclaw/credentials" -type f -exec chmod 600 {} \;
     fi
     
-    if [ -d "$HOME/.openclaw/agents" ]; then
-        chmod -R 700 "$HOME/.openclaw/agents"
-        find "$HOME/.openclaw/agents" -type f -exec chmod 600 {} \;
+    # Secure all subdirectories
+    for dir in agents canvas cron devices identity workspace; do
+        if [ -d "$HOME/.openclaw/$dir" ]; then
+            chmod 700 "$HOME/.openclaw/$dir"
+            find "$HOME/.openclaw/$dir" -type f -exec chmod 600 {} \;
+        fi
+    done
+    
+    # Secure any remaining files
+    if [ -f "$HOME/.openclaw/update-check.json" ]; then
+        chmod 600 "$HOME/.openclaw/update-check.json"
     fi
     
     log "File permissions secured"
@@ -470,9 +488,17 @@ phase5_security() {
         exit 1
     fi
     
-    # Restart gateway
+    # Restart gateway (try user service first, then system service)
     log "Restarting OpenClaw gateway..."
-    openclaw gateway restart || true
+    if systemctl --user is-active openclaw-gateway &> /dev/null; then
+        systemctl --user restart openclaw-gateway
+        log "Gateway restarted (user service)"
+    elif systemctl is-active openclaw-gateway &> /dev/null; then
+        sudo systemctl restart openclaw-gateway
+        log "Gateway restarted (system service)"
+    else
+        openclaw gateway restart 2>/dev/null || warn "Could not restart gateway automatically"
+    fi
     
     save_state "PHASE5_COMPLETE"
     log "Phase 5 complete: Application security configured"
@@ -619,13 +645,16 @@ CHECK_SCRIPT
     
     # Setup cron jobs
     log "Setting up automated maintenance cron jobs..."
-    (crontab -l 2>/dev/null | grep -v "maintenance.sh\|openclaw security audit"; echo "# Weekly security maintenance (Sundays at 3 AM)
-0 3 * * 0 $HOME/maintenance.sh >> /var/log/openclaw-maintenance.log 2>&1
+    (crontab -l 2>/dev/null | grep -v "maintenance.sh\|openclaw security audit\|sessions.*mtime"; echo "# Weekly security maintenance (Sundays at 3 AM)
+0 3 * * 0 $HOME/maintenance.sh >> $HOME/.openclaw-maintenance.log 2>&1
 
 # Daily security audit (4 AM)
-0 4 * * * openclaw security audit --deep >> /var/log/openclaw-audit.log 2>&1") | crontab -
+0 4 * * * openclaw security audit --deep >> $HOME/.openclaw-audit.log 2>&1
+
+# Weekly session cleanup - remove sessions older than 7 days (Sundays at 3:30 AM)
+30 3 * * 0 find $HOME/.openclaw/agents/*/sessions -type f -mtime +7 -delete 2>/dev/null") | crontab -
     
-    log "Cron jobs configured"
+    log "Cron jobs configured (including session cleanup)"
     
     save_state "COMPLETE"
     log "Phase 8 complete: Maintenance configured"

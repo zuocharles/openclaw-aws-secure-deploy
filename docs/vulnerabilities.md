@@ -127,11 +127,19 @@ chmod 700 ~/.openclaw
 chmod 600 ~/.openclaw/openclaw.json
 chmod 700 ~/.openclaw/credentials
 chmod 600 ~/.openclaw/credentials/*
+chmod 700 ~/.openclaw/agents ~/.openclaw/canvas ~/.openclaw/workspace
 ```
+
+> ⚠️ **Limitation:** File permissions block **other local users** from reading your credentials, but credentials remain **plaintext on disk**. If the OpenClaw process itself is compromised (e.g., via prompt injection), the attacker inherits all credentials the process can access. Permissions don't help in that scenario.
+
+**For higher security environments**, consider:
+- Using AWS Secrets Manager or HashiCorp Vault
+- Rotating credentials frequently (see [docs/advanced/secrets-rotation.md](advanced/secrets-rotation.md))
+- Running OpenClaw in a dedicated VM with no other services
 
 **Verification:**
 ```bash
-# Check permissions
+# Check permissions - all directories should be 700, files should be 600
 ls -la ~/.openclaw/
 # Should show drwx------ (700) for directories
 # Should show -rw------- (600) for files
@@ -154,14 +162,22 @@ This is fundamentally hard to prevent completely. We use defense-in-depth:
 
 | Layer | Protection |
 |-------|------------|
-| Sandbox | Even if tricked, commands are isolated |
-| Network Isolation | Can't exfiltrate to external servers |
+| Sandbox | Even if tricked, shell commands are isolated |
+| Network Isolation | Can't exfiltrate via shell to external servers |
 | DM Allowlist | Limits who can send commands |
-| Command Blocklist | Dangerous commands rejected outright |
+
+> ⚠️ **Limitation:** The Docker sandbox only covers **shell command execution**. The bot can still be tricked into using its **built-in capabilities** without touching the sandbox:
+> - Read files via native file access
+> - Send messages via configured channels
+> - Access APIs using stored credentials
+> - Browse the web if browser tools are enabled
+>
+> Prompt injection remains the hardest vulnerability to fully mitigate.
 
 **Recommendation:**
 - Treat all inputs as potentially hostile
 - Use human approval workflows for sensitive operations
+- Limit the bot's connected services to only what you need
 - See [docs/advanced/skills-vetting.md](advanced/skills-vetting.md)
 
 ---
@@ -178,20 +194,32 @@ Nothing stops the bot from running destructive commands like:
 - Credential access commands
 
 **Our Mitigation:**
-Configure command blocklists in OpenClaw:
 
-```json
-{
-  "tools": {
-    "exec": {
-      "blockedCommands": ["rm -rf", "mkfs", "dd if=", "> /dev/"],
-      "blockedPatterns": ["curl.*\\|.*sh", "wget.*\\|.*bash"]
-    }
-  }
-}
+> ⚠️ **OpenClaw Limitation:** As of version 2026.1.30, OpenClaw does **not** support a `blockedCommands` configuration option. The `tools.exec.blockedCommands` key is rejected as an "Unrecognized key" and will cause the gateway to fail to start.
+
+Since we cannot block commands at the configuration level, we rely on defense-in-depth:
+
+| Layer | Protection |
+|-------|------------|
+| Docker Sandbox | Commands execute in isolated containers with limited filesystem access |
+| Network Isolation | `network=none` prevents exfiltration even if destructive commands run |
+| DM Allowlist | Only you can send commands, reducing attack surface |
+| User Permissions | OpenClaw runs as non-root user, limiting blast radius |
+
+**What You Can Do:**
+1. **File a feature request** with OpenClaw to add command blocklisting
+2. **Use human approval** for sensitive operations (configure in your agent)
+3. **Review commands** before approving execution in high-risk scenarios
+
+**Verification:**
+```bash
+# Confirm sandbox is active
+openclaw sandbox
+
+# Test that containers have no network access
+docker run --rm --network none alpine ping -c 1 8.8.8.8
+# Should fail with "Network unreachable"
 ```
-
-**Note:** OpenClaw's schema for command blocking may vary by version. Check `openclaw doctor` for current supported options.
 
 ---
 
@@ -281,14 +309,24 @@ Pairing codes for device authentication can be brute-forced if they're short or 
 **Our Mitigation:**
 | Protection | Implementation |
 |------------|----------------|
-| fail2ban | Rate limits authentication attempts |
+| fail2ban | Rate limits SSH authentication attempts |
 | Tailscale | Adds network-level authentication |
 | DM Allowlist | Requires approved user ID |
+
+> ⚠️ **Limitation:** fail2ban protects **SSH**, but pairing codes are an **application-layer** concern. fail2ban doesn't monitor OpenClaw's pairing endpoint. 
+
+**Best Practice:**
+1. Complete the pairing process **immediately** after running `openclaw onboard`
+2. Don't leave pairing codes unused for extended periods
+3. If you suspect a code was compromised, regenerate it
 
 **Verification:**
 ```bash
 # Check fail2ban is protecting SSH
 sudo fail2ban-client status sshd
+
+# Verify pairing is complete (no active pairing codes)
+cat ~/.openclaw/openclaw.json | grep -i pairing
 ```
 
 ---
@@ -303,21 +341,44 @@ sudo fail2ban-client status sshd
 
 ### mDNS Information Leakage
 
-**Risk:** By default, OpenClaw broadcasts service information via Bonjour/mDNS including hostname, filesystem paths, SSH availability.
+**Risk:** By default, some systems broadcast service information via Bonjour/mDNS including hostname, filesystem paths, SSH availability.
 
-**Our Solution:** Document how to disable mDNS if needed. Tailscale provides its own service discovery.
+**Our Solution:** The setup script disables the Avahi daemon:
+
+```bash
+sudo systemctl stop avahi-daemon
+sudo systemctl disable avahi-daemon
+```
+
+Tailscale provides its own service discovery within your private network.
 
 ### Supply Chain Attacks via Skills
 
 **Risk:** The skills marketplace is like npm—anyone can publish. Cisco found 26% of 31,000 skills analyzed had vulnerabilities.
 
-**Our Solution:** Recommend Cisco's Skill Scanner, provide skill vetting documentation.
+**Our Solution:** 
+- Recommend [Cisco's Skill Scanner](https://github.com/cisco-ai-defense/skill-scanner) before installing any skills
+- Provide skill vetting documentation: [docs/advanced/skills-vetting.md](advanced/skills-vetting.md)
+
+> ⚠️ **Limitation:** This is documentation-only. The setup script does not automatically scan skills or enforce restrictions. Non-technical users may not run the scanner manually.
 
 ### Persistent Memory Accumulation
 
 **Risk:** The bot remembers conversations across sessions. Over time, it accumulates sensitive data—passwords mentioned, financial discussions, medical info.
 
-**Our Solution:** Document session clearing, recommend periodic memory resets.
+**Our Solution:** The setup script adds a weekly cron job to clean up old sessions:
+
+```bash
+# Cleans sessions older than 7 days every Sunday at 3 AM
+0 3 * * 0 find ~/.openclaw/agents/*/sessions -type f -mtime +7 -delete
+```
+
+To manually clear all sessions:
+```bash
+rm -rf ~/.openclaw/agents/*/sessions/*
+```
+
+To adjust retention period, modify the `-mtime +7` value (days).
 
 ---
 

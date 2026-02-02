@@ -45,7 +45,7 @@ Security researchers have been documenting these issues on X:
 SSH into your fresh Ubuntu 24.04 EC2 instance and run:
 
 ```bash
-curl -sL https://raw.githubusercontent.com/CharlesJustLeft/openclaw-aws-secure-deploy/main/scripts/setup.sh | bash
+curl -sL https://raw.githubusercontent.com/zuocharles/openclaw-aws-secure-deploy/main/scripts/setup.sh | bash
 ```
 
 The script will:
@@ -61,7 +61,7 @@ The script will:
 
 ```bash
 # Clone the repo
-git clone https://github.com/CharlesJustLeft/openclaw-aws-secure-deploy.git
+git clone https://github.com/zuocharles/openclaw-aws-secure-deploy.git
 cd openclaw-aws-secure-deploy
 
 # Deploy EC2 instance
@@ -87,13 +87,21 @@ Follow the [Full Guide](docs/full-guide.md) for step-by-step instructions with d
 | 1 | Gateway exposed on 0.0.0.0:18789 | ✅ Fixed | UFW + Tailscale VPN + auth token |
 | 2 | DM policy allows all users | ✅ Fixed | Allowlist with your user ID only |
 | 3 | Sandbox disabled by default | ✅ Fixed | Docker with network=none |
-| 4 | Credentials in plaintext | ✅ Fixed | chmod 700/600 permissions |
+| 4 | Credentials in plaintext | ⚠️ Partial | chmod 700/600 (see limitations) |
 | 5 | Prompt injection via web content | ⚠️ Mitigated | Defense-in-depth (sandbox + allowlist) |
-| 6 | Dangerous commands unblocked | ✅ Fixed | Command blocklist configuration |
+| 6 | Dangerous commands unblocked | ❌ Cannot Fix | OpenClaw doesn't support blocklists |
 | 7 | No network isolation | ✅ Fixed | Docker isolated network |
 | 8 | Elevated tool access | 📖 Documented | Recommend Cisco Skill Scanner |
 | 9 | No audit logging | ✅ Fixed | Logging enabled + security audits |
-| 10 | Weak pairing codes | ✅ Fixed | Rate limiting via fail2ban |
+| 10 | Weak pairing codes | ⚠️ Partial | fail2ban protects SSH only |
+
+### Known Limitations
+
+Some vulnerabilities cannot be fully addressed by deployment configuration:
+
+- **#4 Credentials**: File permissions block other local users, but credentials remain plaintext on disk. If the OpenClaw process is compromised, permissions don't help.
+- **#6 Commands**: OpenClaw does not support a `blockedCommands` configuration option. The Docker sandbox provides partial protection.
+- **#10 Pairing**: fail2ban protects SSH, but pairing codes are application-layer. Complete pairing immediately after setup.
 
 See [docs/vulnerabilities.md](docs/vulnerabilities.md) for detailed explanations.
 
@@ -181,8 +189,8 @@ Before starting, you need:
 
 ## Support
 
-- **Issues:** [GitHub Issues](https://github.com/CharlesJustLeft/openclaw-aws-secure-deploy/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/CharlesJustLeft/openclaw-aws-secure-deploy/discussions)
+- **Issues:** [GitHub Issues](https://github.com/zuocharles/openclaw-aws-secure-deploy/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/zuocharles/openclaw-aws-secure-deploy/discussions)
 - **OpenClaw Docs:** [docs.openclaw.ai](https://docs.openclaw.ai)
 
 ---
