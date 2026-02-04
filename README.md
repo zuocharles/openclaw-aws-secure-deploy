@@ -4,9 +4,65 @@
 [![AWS Ready](https://img.shields.io/badge/AWS-EC2%20Ready-orange.svg)](terraform/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**Secure deployment guide and automation scripts for running OpenClaw on AWS EC2.**
+**The easiest way to deploy a secure OpenClaw instance on AWS.**
 
-Deploy your personal AI assistant with enterprise-grade security in under an hour. This project addresses all 10 known OpenClaw vulnerabilities identified by security researchers.
+Deploy your personal AI assistant with enterprise-grade security in under 30 minutes — even if you're not technical. This project addresses all 10 known OpenClaw vulnerabilities identified by security researchers.
+
+---
+
+## ⚡ Quick Start (Choose Your Path)
+
+We offer two ways to deploy, depending on your comfort level:
+
+### Path A: Automated (15 min) ⭐ Easiest
+
+One command creates everything for you:
+
+```bash
+# Download and run the automated setup
+curl -sL https://raw.githubusercontent.com/zuocharles/openclaw-aws-secure-deploy/main/scripts/setup.sh | bash
+```
+
+**What you'll need:**
+- AWS account + credentials ([guide](docs/screenshots/))
+- SSH key pair ([guide](docs/screenshots/02-create-keypair.md))
+- Discord bot token ([guide](docs/screenshots/04-discord-bot.md))
+- Discord User ID ([guide](docs/screenshots/05-discord-userid.md))
+
+**[→ Full Automated Guide](docs/quickstart.md#path-a-automated-setup-15-min)**
+
+---
+
+### Path B: Manual (30 min) 🔒 Most Control
+
+Create the EC2 instance yourself, then run hardening commands:
+
+```bash
+# SSH into your server
+ssh -i your-key.pem ubuntu@YOUR_EC2_IP
+
+# Run setup commands individually
+git clone https://github.com/zuocharles/openclaw-aws-secure-deploy.git
+cd openclaw-aws-secure-deploy
+# Follow the step-by-step guide
+```
+
+**[→ Full Manual Guide](docs/quickstart.md#path-b-manual-setup-30-min)**
+
+---
+
+## 🤔 Which Path Should I Choose?
+
+| | **Path A: Automated** | **Path B: Manual** |
+|---|---|---|
+| **Time** | ~15 minutes | ~30 minutes |
+| **Effort** | Answer prompts | Follow each step |
+| **AWS credentials** | Script uses them briefly | You create resources manually |
+| **Learning** | Less | More |
+| **Best for** | "Just get it working" | "I want to understand everything" |
+
+**Concerned about giving the script AWS credentials?**  
+Read our [Transparency Guide](TRUST.md) — or choose Path B!
 
 ---
 
@@ -22,7 +78,7 @@ Security researchers found [1,800+ exposed OpenClaw instances](https://www.shoda
 
 ### The Risk is Real
 
-Security researchers have been documenting these issues on X:
+Security researchers have been documenting these issues:
 
 > **[@DanielMiessler](https://x.com/DanielMiessler/status/2015865548714975475)** - Security expert discussing the broader implications of exposed AI agent infrastructure.
 
@@ -32,51 +88,38 @@ Security researchers have been documenting these issues on X:
 
 > **[@lucatac0](https://x.com/lucatac0/status/2015473205863948714)** - Documented over 1,000 exposed instances via Shodan, showing API keys (Anthropic, OpenAI, Telegram) and chat histories accessible without authentication.
 
-> **[Cisco AI Defense Research](https://www.cisco.com)** - Found that cryptocurrency private keys could be extracted in under 5 minutes via crafted email prompt injection. Also discovered 26% of 31,000 skills analyzed had vulnerabilities.
+> **[Cisco AI Defense Research](https://www.cisco.com)** - Found that cryptocurrency private keys could be extracted in under 5 minutes via crafted email prompt injection.
 
-**The core problem:** OpenClaw collapses multiple trust boundaries into a single point of failure. It holds your messaging credentials, API keys, OAuth tokens, email access, file system access, and shell command execution. **If compromised once, attackers inherit everything.**
+**The core problem:** OpenClaw collapses multiple trust boundaries into a single point of failure. **If compromised once, attackers inherit everything.**
 
 ---
 
-## Quick Start
+## What You Get
 
-### Option 1: Automated Setup (Recommended)
+After setup, you'll have:
 
-SSH into your fresh Ubuntu 24.04 EC2 instance and run:
+| Security Feature | Protection |
+|-----------------|------------|
+| 🔒 **No Public Ports** | Firewall blocks all internet access |
+| 🔑 **VPN-Only SSH** | Tailscale required for any server access |
+| 🤖 **DM Allowlist** | Only your Discord user ID can control the bot |
+| 🛡️ **Docker Sandbox** | Commands run in isolated containers |
+| 📊 **Auto Updates** | Weekly security patches |
+| 🔍 **Security Audits** | Daily automated vulnerability scans |
 
-```bash
-curl -sL https://raw.githubusercontent.com/zuocharles/openclaw-aws-secure-deploy/main/scripts/setup.sh | bash
-```
+---
 
-The script will:
-1. Harden your server (SSH, firewall, fail2ban)
-2. Install Tailscale VPN (you'll authenticate via browser)
-3. Install Docker with network isolation
-4. Install OpenClaw
-5. **Pause** for you to run `openclaw onboard`
-6. Configure DM allowlist (prompts for your user ID)
-7. Verify everything and set up maintenance
+## Prerequisites
 
-### Option 2: Terraform + Scripts
+Before starting, you need:
 
-```bash
-# Clone the repo
-git clone https://github.com/zuocharles/openclaw-aws-secure-deploy.git
-cd openclaw-aws-secure-deploy
+- [ ] AWS account ([create one](docs/screenshots/01-aws-signup.md))
+- [ ] Tailscale account ([free signup](https://tailscale.com))
+- [ ] Discord account ([create one](https://discord.com))
+- [ ] LLM API key (Anthropic, OpenAI, etc.)
+- [ ] ~20 minutes of time
 
-# Deploy EC2 instance
-cd terraform
-terraform init
-terraform apply
-
-# SSH in and run setup
-ssh -i your-key.pem ubuntu@$(terraform output -raw public_ip)
-./setup.sh
-```
-
-### Option 3: Manual Setup
-
-Follow the [Full Guide](docs/full-guide.md) for step-by-step instructions with detailed explanations.
+**Total estimated cost:** $15-30/month (AWS t3.small instance)
 
 ---
 
@@ -144,19 +187,40 @@ See [docs/vulnerabilities.md](docs/vulnerabilities.md) for detailed explanations
 
 ---
 
+## Documentation
+
+- **[Quick Start](docs/quickstart.md)** - Get running in 15-30 minutes
+- **[Full Guide](docs/full-guide.md)** - Complete step-by-step instructions
+- **[Trust & Security](TRUST.md)** - What the script does and doesn't do
+- **[Vulnerabilities](docs/vulnerabilities.md)** - Security deep-dive
+- **[Screenshot Guides](docs/screenshots/)** - Visual walkthroughs for each step
+- **[Advanced Topics](docs/advanced/)** - Backups, monitoring, secrets rotation
+
+---
+
 ## What's Included
 
 ```
 openclaw-aws-secure-deploy/
+├── README.md                 # This file
+├── TRUST.md                  # Security transparency document
 ├── scripts/
-│   ├── setup.sh              # Master setup script (run this!)
+│   ├── setup.sh              # Master setup script
 │   ├── maintenance.sh        # Weekly maintenance
 │   └── check-security.sh     # Quick security check
 ├── terraform/                # AWS infrastructure as code
 ├── config-templates/         # Secure configuration files
 └── docs/
+    ├── quickstart.md         # 15-30 min quick start
     ├── full-guide.md         # Complete step-by-step guide
     ├── vulnerabilities.md    # Security deep-dive
+    ├── screenshots/          # Visual setup guides
+    │   ├── 01-aws-signup.md
+    │   ├── 02-create-keypair.md
+    │   ├── 03-get-credentials.md
+    │   ├── 04-discord-bot.md
+    │   ├── 05-discord-userid.md
+    │   └── 06-discord-invite.md
     └── advanced/             # Secrets rotation, backups, etc.
 ```
 
@@ -164,31 +228,27 @@ openclaw-aws-secure-deploy/
 
 ## Comparison with Other Tools
 
-| Feature | This Project | openclaw-ansible | openclaw-security-scan |
-|---------|-------------|------------------|----------------------|
-| AWS-specific | ✅ Terraform included | ❌ Generic | ❌ Scanner only |
-| Beginner-friendly | ✅ Guided setup | ⚠️ Ansible knowledge needed | ✅ Simple CLI |
-| Full deployment | ✅ End-to-end | ✅ End-to-end | ❌ Detection only |
-| Explains vulnerabilities | ✅ Detailed docs | ❌ Just fixes | ⚠️ Brief |
-| Interactive setup | ✅ Prompts for input | ❌ Config files | N/A |
+| Feature | This Project | openclaw-ansible | openclaw-security-scan | SimpleClaw |
+|---------|-------------|------------------|----------------------|------------|
+| **AWS-specific** | ✅ Terraform included | ❌ Generic | ❌ Scanner only | ✅ Hosted service |
+| **Self-hosted** | ✅ You own the server | ✅ Self-hosted | ✅ Self-hosted | ❌ They host it |
+| **Privacy** | ✅ Your data stays yours | ✅ Your data stays yours | ✅ Your data stays yours | ⚠️ Third-party hosted |
+| **Beginner-friendly** | ✅ Guided setup | ⚠️ Ansible knowledge needed | ✅ Simple CLI | ✅ Easiest |
+| **Full deployment** | ✅ End-to-end | ✅ End-to-end | ❌ Detection only | ✅ Managed service |
+| **Cost** | $15-30/month AWS | $15-30/month AWS | Free (scanner only) | Subscription |
+| **Customizable** | ✅ Full control | ✅ Full control | ❌ Scanner only | ⚠️ Limited |
 
----
-
-## Prerequisites
-
-Before starting, you need:
-
-- [ ] AWS account with EC2 access
-- [ ] [Tailscale account](https://tailscale.com) (free tier works)
-- [ ] Tailscale installed on your local machine
-- [ ] LLM API key (Anthropic, OpenAI, etc.)
-- [ ] Discord/Telegram bot token (if using messaging)
-- [ ] Your messaging platform user ID ([how to get it](docs/full-guide.md#getting-your-messaging-platform-user-id))
+**Why choose this over SimpleClaw?**
+- Your data stays on your server (not someone else's)
+- You control the infrastructure
+- Add any skills or customizations you want
+- No subscription fees (just AWS costs)
 
 ---
 
 ## Support
 
+- **Quick Start:** [docs/quickstart.md](docs/quickstart.md)
 - **Issues:** [GitHub Issues](https://github.com/zuocharles/openclaw-aws-secure-deploy/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/zuocharles/openclaw-aws-secure-deploy/discussions)
 - **OpenClaw Docs:** [docs.openclaw.ai](https://docs.openclaw.ai)
@@ -206,3 +266,7 @@ Before starting, you need:
 ## License
 
 MIT License - See [LICENSE](LICENSE) for details.
+
+---
+
+**Ready to start?** → [Quick Start Guide](docs/quickstart.md)
