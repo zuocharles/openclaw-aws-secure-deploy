@@ -37,7 +37,7 @@ I'm a PM (not a security expert) who wanted a 24/7 AI assistant that:
 - ✅ Only responds to my Discord account
 - ✅ Doesn't leak my API keys to the internet
 
-**I didn't want to be one of those 1,800+ exposed instances.**
+**OpenClaw is great but I didn't want to be one of those 1,800+ exposed instances.**
 
 ---
 
@@ -54,7 +54,7 @@ By the end of this guide, you'll have:
 | 🐳 **Docker Sandbox** | AI-generated code runs in isolation with no network |
 | 🛡️ **Prompt Defense** | AI scans code for malicious patterns before running |
 
-**Cost:** ~$40/month (AWS m7i-flex.large)  
+**Cost:** ~$40/month (AWS m7i-flex.large, AWS gives $200 free credit to new users)  
 **Time:** 30-45 minutes  
 **Skill level:** If you can copy-paste terminal commands, you can do this
 
